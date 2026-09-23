@@ -10,7 +10,7 @@ import type {
   CodexResetCreditPayload,
   CodexResetCreditRowPayload,
 } from "./types.js";
-import { asNumber, asString, assertObject, parseJsonObject, redactErrorBody } from "./utils.js";
+import { asNumber, asString, assertObject, parseJsonObject } from "./utils.js";
 
 export async function fetchCodexResetCredits(ctx: ExtensionContext, timeoutMs: number): Promise<CodexResetCreditList> {
   const auth = await resolvePiCodexWhamAuth(ctx);
@@ -62,7 +62,7 @@ export async function consumeCodexResetCredit(
   const text = await response.text();
   if (!response.ok) {
     throw new Error(
-      `Codex consume banked reset returned ${response.status} ${response.statusText}: ${redactErrorBody(text)}`,
+      `Codex consume banked reset returned ${response.status}${response.statusText ? ` ${response.statusText}` : ""}.`,
     );
   }
 
