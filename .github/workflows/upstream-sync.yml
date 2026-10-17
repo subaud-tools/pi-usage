@@ -13,11 +13,11 @@ jobs:
   sync:
     runs-on: ubuntu-26.04
     steps:
-      - uses: schuettc/tools-actions/fork-sync@v0.10.3
+      - uses: subaud-tools/tools-actions/fork-sync@v0.11.0
         with:
           upstream_repo: "Sreetej510/pi-extensions"
           upstream_branch: "master"
-          pkg_name: "@schuettc/pi-usage"
+          pkg_name: "@subaud-tools/pi-usage"
           pkg_dir: "extensions/pi-usage"
           tag_prefix: "pi-usage-v"
           test_cmd: "npm install --no-audit --no-fund && npm run typecheck -w extensions/pi-usage && npm test -w extensions/pi-usage"
