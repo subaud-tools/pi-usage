@@ -2,8 +2,8 @@ version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
-    target-branch: schuettc-publish
+    target-branch: publish
     schedule: { interval: weekly }
     cooldown: { default-days: 3 }
     allow:
-      - dependency-name: "schuettc/tools-actions"
+      - dependency-name: "subaud-tools/tools-actions"
