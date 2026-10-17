@@ -30,7 +30,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        # npm install, not npm ci: the schuettc fork's patches add dependencies
+        # npm install, not npm ci: the fork's patches add dependencies
         # (fs-ext-extra-prebuilt, tsx) that upstream's package-lock.json does not
         # carry, and carrying a lockfile would conflict on every upstream rebase.
         # The same install the fork's publish gate (upstream-sync test_cmd) uses.
