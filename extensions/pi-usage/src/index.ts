@@ -115,7 +115,7 @@ export default function usageExtension(pi: ExtensionAPI) {
   const ensureUsageFooter = (ctx: ExtensionContext) => {
     if (isFooterRegistered() || !ctx.hasUI) return;
     try {
-      installUsageFooter(pi, ctx);
+      installUsageFooter(ctx);
       setFooterRegistered(true);
     } catch (error) {
       if (!handleStaleContextError(ctx, error)) throw error;
