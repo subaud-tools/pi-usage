@@ -1,11 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import {
-  adapterForReport,
-  currentAccountForAdapter,
-  getUsageAdaptersV1,
-  resolveReportAccountLabel,
-} from "./adapter-bus.js";
+import { adapterForReport, currentAccountForAdapter, getUsageAdaptersV1 } from "./adapter-bus.js";
 import {
   ANTHROPIC_PROVIDER_ID,
   CACHE_TTL_MS,
@@ -13,7 +8,6 @@ import {
   DEFAULT_TIMEOUT_MS,
   REFRESH_LEASE_MS,
   STATUS_KEY,
-  USAGE_UNAVAILABLE_TEXT,
 } from "./constants.js";
 import { isRateLimitErrorMessage, isStaleExtensionContextError, rateLimitBackoffMs } from "./errors.js";
 import { formatUsageStatusline } from "./format.js";
@@ -199,7 +193,7 @@ const scheduleCountdownRerender = (
       }
       return;
     }
-    let text = renderStatuslineText(report, model);
+    let text = formatUsageStatusline(report, model);
     if (text === undefined) return;
     if (stale) text = `${text} (${formatAgeShort(Math.max(0, runtime.now() - report.capturedAt))} old)`;
     if (!setStatuslineValue(ctx, text)) return;
@@ -222,7 +216,7 @@ const setUsageStatusline = (
     schedule?: boolean;
   },
 ): boolean => {
-  let text = renderStatuslineText(report, options.model);
+  let text = formatUsageStatusline(report, options.model);
   if (text === undefined) {
     setStatuslineValue(ctx, undefined);
     return false;
@@ -336,21 +330,6 @@ const getCachedReportForModel = (
     return cache && reportMatchesModel(cache.report, model) && matchesAccount(cache.report) ? cache : undefined;
   }
 };
-
-/** Renders the statusline text and, for an external-adapter report, tags it
- * with the account the usage was measured against: the report's own account
- * label, else the label the adapter now gives that same account id, else no
- * label at all. Resolved at render time and NEVER persisted to the cache or
- * report objects. */
-function renderStatuslineText(report: UsageReport, model: ProviderUsageModel | undefined): string | undefined {
-  const text = formatUsageStatusline(report, model);
-  if (text === undefined || text === USAGE_UNAVAILABLE_TEXT) return text;
-  const label = resolveReportAccountLabel(report);
-  if (!label) return text;
-  const match = text.match(/^(\S+)([\s\S]*)$/);
-  if (!match) return text;
-  return `${match[1]}(${label})${match[2]}`;
-}
 
 function clearRefreshTimer(): void {
   if (!statuslineRefreshTimer) return;
