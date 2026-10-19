@@ -756,7 +756,7 @@ void test("a native claude report beats a newer external-adapter report for an a
   });
 });
 
-void test("the statusline tags the claude provider with the snapshot's own account label", async () => {
+void test("the statusline leaves the account out; the bridge shows it as its own status", async () => {
   await withHarness(async () => {
     const model = { provider: "claude-bridge", id: "claude-sonnet", name: "Claude Sonnet" };
     const snapshot: ProviderUsageSnapshotV1 = {
@@ -780,47 +780,7 @@ void test("the statusline tags the claude provider with the snapshot's own accou
 
     try {
       assert.equal(applyProviderUsageSnapshot(ctx, snapshot), true);
-      assert.equal(statuses.at(-1), "Claude(fundamental@example.com) · 5h 64%");
-    } finally {
-      unregister();
-    }
-  });
-});
-
-void test("the statusline falls back to the adapter's current label when the report carries none (disk-loaded report)", async () => {
-  await withHarness(async () => {
-    const model = { provider: "claude-bridge", id: "claude-sonnet", name: "Claude Sonnet" };
-    // Mimics a report read back from the shared disk cache, where the label is
-    // never persisted — only the account id survives.
-    saveSharedUsageReport(
-      {
-        provider: "claude",
-        source: "external-adapter",
-        snapshotSource: "test-adapter",
-        adapterId: "claude-bridge",
-        complete: true,
-        modelProviders: ["claude-bridge"],
-        account: { id: "c33cb52c" },
-        capturedAt: NOW,
-        windows: [{ id: "five_hour", label: "5h", usedPercent: 64, scope: { kind: "account" } }],
-      },
-      NOW,
-    );
-    const unregister = getUsageBusV1().register({
-      id: "claude-bridge",
-      usageProvider: "claude",
-      modelProviders: ["claude-bridge"],
-      currentAccount: () => ({ id: "c33cb52c", label: "fundamental@example.com" }),
-      refresh: async () => {
-        throw new Error("not used in this test");
-      },
-    });
-    const statuses: Array<string | undefined> = [];
-    const ctx = context(model, statuses);
-
-    try {
-      await refreshCurrentUsageStatusline(ctx, model);
-      assert.equal(statuses.at(-1), "Claude(fundamental@example.com) · 5h 64%");
+      assert.equal(statuses.at(-1), "Claude · 5h 64%");
     } finally {
       unregister();
     }
