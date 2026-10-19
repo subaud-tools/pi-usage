@@ -1,6 +1,6 @@
 import { isAbsolute, relative, resolve, sep } from "node:path";
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { truncateToWidth } from "@earendil-works/pi-tui";
 import { STATUS_KEY } from "./constants.js";
 import type { FooterDataView, FooterTheme, FooterTui } from "./types.js";
 import { asNumber, sanitizeStatusText } from "./utils.js";
@@ -15,7 +15,7 @@ export function setFooterRegistered(value: boolean): void {
   footerRegistered = value;
 }
 
-export function installUsageFooter(pi: ExtensionAPI, ctx: ExtensionContext): void {
+export function installUsageFooter(ctx: ExtensionContext): void {
   // biome-ignore lint/suspicious/noExplicitAny: footer factory params are provided by the host
   ctx.ui.setFooter((tui: any, theme: any, footerData: any) => {
     const footerTui = tui as FooterTui;
@@ -26,14 +26,13 @@ export function installUsageFooter(pi: ExtensionAPI, ctx: ExtensionContext): voi
       dispose: unsubscribe,
       invalidate() {},
       render(width: number): string[] {
-        return renderUsageFooter(pi, ctx, footerTheme, footerView, width);
+        return renderUsageFooter(ctx, footerTheme, footerView, width);
       },
     };
   });
 }
 
-function renderUsageFooter(
-  pi: ExtensionAPI,
+export function renderUsageFooter(
   ctx: ExtensionContext,
   theme: FooterTheme,
   footerData: FooterDataView,
@@ -98,43 +97,11 @@ function renderUsageFooter(
   else if (contextPercentValue > 70) contextStr = theme.fg("warning", contextDisplay);
   statsParts.push(contextStr);
 
-  let statsLeft = statsParts.join(" ");
-  let statsLeftWidth = visibleWidth(statsLeft);
-  if (statsLeftWidth > width) {
-    statsLeft = truncateToWidth(statsLeft, width, "...");
-    statsLeftWidth = visibleWidth(statsLeft);
-  }
-
-  const modelName = ctx.model?.id || "no-model";
-  let rightSide = modelName;
-  if (ctx.model?.reasoning) {
-    const level = pi.getThinkingLevel?.() ?? "off";
-    rightSide = level === "off" ? `${modelName} \u2022 thinking off` : `${modelName} \u2022 ${level}`;
-  }
-  if (footerData.getAvailableProviderCount() > 1 && ctx.model) {
-    const withProvider = `(${ctx.model.provider}) ${rightSide}`;
-    if (statsLeftWidth + 2 + visibleWidth(withProvider) <= width) rightSide = withProvider;
-  }
-
-  const rightSideWidth = visibleWidth(rightSide);
-  let statsLine: string;
-  if (statsLeftWidth + 2 + rightSideWidth <= width) {
-    statsLine = statsLeft + " ".repeat(width - statsLeftWidth - rightSideWidth) + rightSide;
-  } else {
-    const availableForRight = width - statsLeftWidth - 2;
-    if (availableForRight > 0) {
-      const truncatedRight = truncateToWidth(rightSide, availableForRight, "");
-      const pad = Math.max(0, width - statsLeftWidth - visibleWidth(truncatedRight));
-      statsLine = statsLeft + " ".repeat(pad) + truncatedRight;
-    } else {
-      statsLine = statsLeft;
-    }
-  }
-
-  const dimStatsLeft = theme.fg("dim", statsLeft);
-  const dimRemainder = theme.fg("dim", statsLine.slice(statsLeft.length));
+  // The model and thinking level live in the tmux status bar (pi-tmux-bridge
+  // writes them for tmux-claude-context.sh), so the stats line carries none.
+  const statsLine = truncateToWidth(theme.fg("dim", statsParts.join(" ")), width, theme.fg("dim", "..."));
   const pwdLine = truncateToWidth(theme.fg("dim", pwd), width, theme.fg("dim", "..."));
-  const lines = [pwdLine, dimStatsLeft + dimRemainder];
+  const lines = [pwdLine, statsLine];
 
   const statusLine = renderUsageStatusLine(theme, footerData, width);
   if (statusLine !== undefined) lines.push(statusLine);
