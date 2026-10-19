@@ -141,30 +141,23 @@ function renderUsageFooter(
   return lines;
 }
 
-function renderUsageStatusLine(theme: FooterTheme, footerData: FooterDataView, width: number): string | undefined {
+/** Usage leads the line, left-aligned: its text changes length as it refreshes
+ * ("checking", "(5m old)", countdowns), and a fixed start keeps it from
+ * jumping. A narrow terminal cuts the other statuses first. */
+export function renderUsageStatusLine(
+  theme: FooterTheme,
+  footerData: FooterDataView,
+  width: number,
+): string | undefined {
   const statuses = footerData.getExtensionStatuses();
-  if (statuses.size === 0) return undefined;
-
   const ours = statuses.get(STATUS_KEY);
   const others = Array.from(statuses.entries())
     .filter(([key]) => key !== STATUS_KEY)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([, text]) => sanitizeStatusText(text));
-  const left = others.join(" ");
-
-  if (!ours) {
-    return left ? truncateToWidth(left, width, theme.fg("dim", "...")) : undefined;
-  }
-
-  const right = sanitizeStatusText(ours);
-  const leftWidth = visibleWidth(left);
-  const rightWidth = visibleWidth(right);
-  if (leftWidth + 1 + rightWidth > width) {
-    // Not enough room to right-align cleanly; keep usage visible on its own line.
-    return truncateToWidth(left ? `${left} ${right}` : right, width, theme.fg("dim", "..."));
-  }
-  const padding = " ".repeat(Math.max(1, width - leftWidth - rightWidth));
-  return left + padding + right;
+    .map(([, text]) => sanitizeStatusText(text))
+    .join(" ");
+  const line = [ours ? sanitizeStatusText(ours) : "", others].filter(Boolean).join("  ");
+  return line ? truncateToWidth(line, width, theme.fg("dim", "...")) : undefined;
 }
 
 function formatFooterTokens(count: number): string {
