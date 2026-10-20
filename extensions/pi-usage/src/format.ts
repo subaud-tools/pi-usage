@@ -9,6 +9,7 @@ import type {
   NormalizedRateLimitSnapshot,
   NormalizedRateLimitWindow,
   NormalizedUsageWindow,
+  OpenRouterUsageReport,
   PiModel,
   ProviderUsageModel,
   UsageQueryError,
@@ -75,6 +76,11 @@ export function formatUsageStatusline(report: UsageReport, model?: ProviderUsage
   if (report.source === "external-adapter") {
     return formatNormalizedUsageStatusline(report.windows, report.provider, model, report.providerLabel);
   }
+  if (report.provider === "openrouter") {
+    const left = formatMoneyAmount(report.totalCredits - report.totalUsage, "USD", 2);
+    const total = formatMoneyAmount(report.totalCredits, "USD", Number.isInteger(report.totalCredits) ? 0 : 2);
+    return `OpenRouter · ${left}/${total}`;
+  }
   if (report.provider === "claude") {
     if (!model) return report.statusline;
     const hasMatchingModelWindows = report.windows.some(
@@ -94,8 +100,24 @@ export function formatUsageStatusline(report: UsageReport, model?: ProviderUsage
 
 export function formatUsageReport(report: UsageReport, cacheAgeMs?: number): string {
   if (report.source === "external-adapter") return formatAdapterUsageReport(report);
+  if (report.provider === "openrouter") return formatOpenRouterUsageReport(report);
   if (report.provider === "claude") return report.summaryLines.join("\n");
   return formatCodexUsageReport(report, cacheAgeMs);
+}
+
+/** "$25.82 left of $75": the credit balance left of the total credits bought. */
+function formatOpenRouterBalance(report: OpenRouterUsageReport): string {
+  const left = formatMoneyAmount(report.totalCredits - report.totalUsage, "USD", 2);
+  const total = formatMoneyAmount(report.totalCredits, "USD", Number.isInteger(report.totalCredits) ? 0 : 2);
+  return `${left} left of ${total}`;
+}
+
+function formatOpenRouterUsageReport(report: OpenRouterUsageReport): string {
+  return [
+    "  >_ OpenRouter Credits",
+    "",
+    `  ${"Balance:".padEnd(LIMIT_VALUE_COLUMN)}${formatOpenRouterBalance(report)}`,
+  ].join("\n");
 }
 
 function formatNormalizedUsageStatusline(
@@ -286,7 +308,7 @@ export function showReports(ctx: ExtensionCommandContext, reports: UsageReport[]
 
 export function formatQueryErrors(errors: UsageQueryError[], partial = false): string {
   if (errors.length === 0) {
-    return "No logged-in Codex or Anthropic providers. Run /login to connect one.";
+    return "No logged-in Codex, Anthropic or OpenRouter providers. Run /login to connect one.";
   }
 
   const lines = [partial ? "Some provider usage is unavailable:" : "Usage unavailable:"];
@@ -298,7 +320,9 @@ export function formatQueryErrors(errors: UsageQueryError[], partial = false): s
           ? "Codex fallback"
           : error.source === "anthropic-oauth"
             ? "Anthropic"
-            : "External adapter";
+            : error.source === "openrouter-api"
+              ? "OpenRouter"
+              : "External adapter";
     lines.push(`- ${source}: ${compactQueryError(error.message)}`);
   }
   return lines.join("\n");
