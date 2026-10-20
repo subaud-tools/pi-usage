@@ -14,6 +14,7 @@ import { formatUsageStatusline } from "./format.js";
 import {
   isAnthropicModel,
   isOpenAICodexModel,
+  isOpenRouterModel,
   isUsageSupportedModel,
   providerKeyForModel,
   reportMatchesModel,
@@ -338,7 +339,7 @@ function clearRefreshTimer(): void {
 }
 
 function usageProviderForModel(model: ProviderUsageModel): UsageProviderKey {
-  if (isAnthropicModel(model) || isOpenAICodexModel(model)) {
+  if (isAnthropicModel(model) || isOpenAICodexModel(model) || isOpenRouterModel(model)) {
     return providerKeyForModel(model);
   }
   return adapterForModel(model)?.usageProvider ?? providerKeyForModel(model);
