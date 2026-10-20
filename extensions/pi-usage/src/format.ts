@@ -76,7 +76,11 @@ export function formatUsageStatusline(report: UsageReport, model?: ProviderUsage
   if (report.source === "external-adapter") {
     return formatNormalizedUsageStatusline(report.windows, report.provider, model, report.providerLabel);
   }
-  if (report.provider === "openrouter") return `OpenRouter · ${formatOpenRouterBalance(report)}`;
+  if (report.provider === "openrouter") {
+    const left = formatMoneyAmount(report.totalCredits - report.totalUsage, "USD", 2);
+    const total = formatMoneyAmount(report.totalCredits, "USD", Number.isInteger(report.totalCredits) ? 0 : 2);
+    return `OpenRouter · ${left}/${total}`;
+  }
   if (report.provider === "claude") {
     if (!model) return report.statusline;
     const hasMatchingModelWindows = report.windows.some(

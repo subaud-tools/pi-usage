@@ -28,8 +28,8 @@ void test("normalizes the OpenRouter /credits payload to a balance report", () =
   });
 });
 
-void test("the status line shows the OpenRouter balance left of total credits", () => {
-  assert.equal(formatUsageStatusline(openRouterReport, openRouterModel), "OpenRouter · $25.82 left of $75");
+void test("the status line shows the OpenRouter credit balance left of total credits", () => {
+  assert.equal(formatUsageStatusline(openRouterReport, openRouterModel), "OpenRouter · $25.82/$75");
 });
 
 void test("openrouter models are supported and the OpenRouter report matches only them", () => {
