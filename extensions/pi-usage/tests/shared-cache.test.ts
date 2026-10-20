@@ -301,7 +301,7 @@ void test("concurrent child writers preserve both provider updates", async () =>
 
 void test("a simulated rename failure preserves valid cache JSON", () => {
   withCache((cacheFile) => {
-    const original: SharedUsageCache = { version: 3, entries: {} };
+    const original: SharedUsageCache = { version: 4, entries: {} };
     writeFileSync(cacheFile, JSON.stringify(original));
     configureSharedCacheForTests({
       cacheFile,
@@ -331,12 +331,12 @@ function adapterReport(overrides: Partial<AdapterUsageReport> = {}): AdapterUsag
   };
 }
 
-void test("a v2 cache file with a claude entry is discarded entirely after the v3 upgrade", () => {
+void test("a v3 cache file with a claude entry is discarded entirely after the v4 upgrade", () => {
   withCache((cacheFile) => {
     writeFileSync(
       cacheFile,
       JSON.stringify({
-        version: 2,
+        version: 3,
         entries: {
           claude: { createdAt: NOW - 1_000, report: anthropicReport(NOW - 1_000) },
           codex: { createdAt: NOW - 1_000, report: report(NOW - 1_000) },
