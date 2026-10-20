@@ -26,10 +26,11 @@ export const RATE_LIMIT_BACKOFF_MS = 15 * 60 * 1000;
 export const RATE_LIMIT_BACKOFF_MIN_MS = 30 * 1000;
 export const RATE_LIMIT_BACKOFF_MAX_MS = 60 * 60 * 1000;
 /** Shared on-disk usage cache so concurrent pi sessions don't each hit the APIs.
- * Named -v3 (not usage-cache.json) so a mixed-version rollout never has an old
- * (v2) and new (v3) session discard and overwrite each other's cache file. */
-export const SHARED_CACHE_FILE = join(homedir(), ".pi", "agent", "usage-cache-v3.json");
-export const SHARED_CACHE_VERSION = 3;
+ * The name carries the version so a mixed-version rollout never has an old and
+ * new session discard and overwrite each other's cache file: v4 added the
+ * openrouter entry, which a v3 reader rejects along with the whole file. */
+export const SHARED_CACHE_FILE = join(homedir(), ".pi", "agent", "usage-cache-v4.json");
+export const SHARED_CACHE_VERSION = 4;
 export const STATUS_KEY = "provider-usage";
 export const BAR_SEGMENTS = 20;
 export const LIMIT_VALUE_COLUMN = 29;

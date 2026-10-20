@@ -309,7 +309,7 @@ export type UsageProviderKey = ProviderKeyV1 | "openrouter";
 export type SharedCacheEntry = { createdAt: number; report: UsageReport };
 
 export type SharedUsageCache = {
-  version: 3;
+  version: 4;
   /** Keyed by provider ("claude", "codex", "openrouter"), or "<provider>@<accountId>" for an
    * external-adapter report measured against a specific account. */
   entries: Partial<Record<string, SharedCacheEntry>>;
