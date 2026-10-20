@@ -4,8 +4,9 @@ import { resolvePiCodexAuth } from "./codex-auth.js";
 import { ANTHROPIC_OAUTH_USAGE_URL, CODEX_USAGE_URL } from "./constants.js";
 import { isStaleExtensionContextError, throwUsageEndpointError } from "./errors.js";
 import { fetchWithTimeout } from "./http.js";
-import { anthropicAuthCandidateModels, codexAuthCandidateModels } from "./models.js";
+import { anthropicAuthCandidateModels, codexAuthCandidateModels, openRouterAuthCandidateModels } from "./models.js";
 import { normalizeAnthropicUsagePayload } from "./normalize-anthropic.js";
+import { fetchOpenRouterCredits } from "./openrouter-query.js";
 import type { AnthropicOAuthUsagePayload, AnthropicUsageReport } from "./types.js";
 import { errorMessage, parseJsonObject, prettyJson } from "./utils.js";
 
@@ -64,6 +65,16 @@ export async function fetchRawUsagePayloads(ctx: ExtensionContext, timeoutMs: nu
     } catch (error) {
       if (isStaleExtensionContextError(error)) throw error;
       sections.push(`>_ Codex raw: error \u2014 ${errorMessage(error)}`);
+    }
+  }
+
+  if (openRouterAuthCandidateModels(ctx).length > 0) {
+    try {
+      const { response, text } = await fetchOpenRouterCredits(ctx, timeoutMs);
+      sections.push(`>_ OpenRouter raw (${response.status}):\n${prettyJson(text)}`);
+    } catch (error) {
+      if (isStaleExtensionContextError(error)) throw error;
+      sections.push(`>_ OpenRouter raw: error \u2014 ${errorMessage(error)}`);
     }
   }
 

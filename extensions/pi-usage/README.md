@@ -17,6 +17,7 @@ usage / rate-limit budgets — OpenAI Codex, Anthropic OAuth, and pi-auth-backed
 ## Provider support
 - OpenAI Codex through Pi auth, with the Codex app-server fallback.
 - Anthropic OAuth through Pi auth.
+- OpenRouter credit balance (money left of total credits) through Pi's OpenRouter API key.
 - Optional provider adapters discovered at runtime. No Schuettc package is required.
 
 ## Optional provider adapter protocol
