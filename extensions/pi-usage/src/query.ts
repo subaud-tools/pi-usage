@@ -10,8 +10,11 @@ import {
   codexAuthCandidateModels,
   isAnthropicModel,
   isOpenAICodexModel,
+  isOpenRouterModel,
+  openRouterAuthCandidateModels,
 } from "./models.js";
 import { normalizeExternalUsageSnapshot } from "./normalize-external.js";
+import { queryOpenRouterUsage } from "./openrouter-query.js";
 import type { QueryUsageOptions, QueryUsageResult, UsageQueryError, UsageReport, UsageSource } from "./types.js";
 import { delay, errorMessage } from "./utils.js";
 
@@ -21,6 +24,7 @@ export async function queryAllUsage(
 ): Promise<{ reports: UsageReport[]; errors: UsageQueryError[] }> {
   const hasCodex = codexAuthCandidateModels(ctx).length > 0;
   const hasAnthropic = anthropicAuthCandidateModels(ctx).length > 0;
+  const hasOpenRouter = openRouterAuthCandidateModels(ctx).length > 0;
 
   type ProviderResult = { report?: UsageReport; errors: UsageQueryError[] };
   const empty: ProviderResult = { errors: [] };
@@ -34,6 +38,12 @@ export async function queryAllUsage(
       source: "anthropic-oauth",
       promise: hasAnthropic
         ? queryAnthropicUsage(ctx, options.timeoutMs).then((report): ProviderResult => ({ report, errors: [] }))
+        : Promise.resolve<ProviderResult>(empty),
+    },
+    {
+      source: "openrouter-api",
+      promise: hasOpenRouter
+        ? queryOpenRouterUsage(ctx, options.timeoutMs).then((report): ProviderResult => ({ report, errors: [] }))
         : Promise.resolve<ProviderResult>(empty),
     },
     ...adapters.map((adapter) => ({
@@ -108,6 +118,19 @@ export async function queryUsage(
       return {
         ok: false,
         errors: [{ source: "anthropic-oauth", message: errorMessage(cause), cause }],
+      };
+    }
+  }
+
+  if (isOpenRouterModel(ctx.model)) {
+    try {
+      const report = await queryOpenRouterUsage(ctx, options.timeoutMs);
+      return { ok: true, report };
+    } catch (cause) {
+      if (isStaleExtensionContextError(cause)) throw cause;
+      return {
+        ok: false,
+        errors: [{ source: "openrouter-api", message: errorMessage(cause), cause }],
       };
     }
   }

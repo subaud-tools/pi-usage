@@ -6,7 +6,7 @@ export type CommandArgumentCompletion = {
   description?: string;
 };
 
-export type UsageSource = "pi-auth" | "codex-app-server" | "anthropic-oauth" | "external-adapter";
+export type UsageSource = "pi-auth" | "codex-app-server" | "anthropic-oauth" | "openrouter-api" | "external-adapter";
 export type PiModel = NonNullable<ExtensionContext["model"]>;
 export type ProviderUsageModel = Pick<PiModel, "id" | "name" | "provider">;
 
@@ -138,7 +138,17 @@ export type AnthropicUsageReport = {
   statusline: string;
 };
 
-export type UsageReport = CodexUsageReport | AnthropicUsageReport | AdapterUsageReport;
+/** OpenRouter's account credit balance from GET /api/v1/credits, in USD.
+ * Not a bus provider: OpenRouter stays out of ProviderKeyV1. */
+export type OpenRouterUsageReport = {
+  provider: "openrouter";
+  source: "openrouter-api";
+  capturedAt: number;
+  totalCredits: number;
+  totalUsage: number;
+};
+
+export type UsageReport = CodexUsageReport | AnthropicUsageReport | OpenRouterUsageReport | AdapterUsageReport;
 
 export type NormalizedRateLimitSnapshot = {
   limitId: string;
@@ -293,17 +303,18 @@ export type CodexResetCreditList = {
   credits: CodexResetCredit[];
 };
 
-export type UsageProviderKey = ProviderKeyV1;
+/** Providers pi-usage tracks: the bus providers plus natively queried OpenRouter. */
+export type UsageProviderKey = ProviderKeyV1 | "openrouter";
 
 export type SharedCacheEntry = { createdAt: number; report: UsageReport };
 
 export type SharedUsageCache = {
-  version: 3;
-  /** Keyed by provider ("claude", "codex"), or "<provider>@<accountId>" for an
+  version: 4;
+  /** Keyed by provider ("claude", "codex", "openrouter"), or "<provider>@<accountId>" for an
    * external-adapter report measured against a specific account. */
   entries: Partial<Record<string, SharedCacheEntry>>;
-  backoffUntil?: Partial<Record<ProviderKeyV1, number>>;
-  refreshLeases?: Partial<Record<ProviderKeyV1, { owner: string; expiresAt: number }>>;
+  backoffUntil?: Partial<Record<UsageProviderKey, number>>;
+  refreshLeases?: Partial<Record<UsageProviderKey, { owner: string; expiresAt: number }>>;
 };
 
 export type FooterTheme = {
