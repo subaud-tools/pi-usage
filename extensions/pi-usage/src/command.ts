@@ -34,7 +34,7 @@ import { errorMessage } from "./utils.js";
 
 export function registerUsageCommand(pi: ExtensionAPI): void {
   pi.registerCommand(COMMAND_NAME, {
-    description: "Show usage for all configured providers (Codex and Anthropic)",
+    description: "Show usage for all configured providers (Codex, Anthropic and OpenRouter)",
     getArgumentCompletions: completeCodexStatusArguments,
     handler: async (args, ctx) => {
       try {
@@ -186,7 +186,11 @@ export function registerUsageCommand(pi: ExtensionAPI): void {
             for (const error of result.errors) {
               if (isRateLimitErrorMessage(error.message)) {
                 saveSharedBackoff(
-                  error.source === "anthropic-oauth" ? "claude" : "codex",
+                  error.source === "anthropic-oauth"
+                    ? "claude"
+                    : error.source === "openrouter-api"
+                      ? "openrouter"
+                      : "codex",
                   Date.now() + rateLimitBackoffMs([error]),
                 );
               }
