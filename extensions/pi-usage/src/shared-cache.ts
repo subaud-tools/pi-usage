@@ -201,6 +201,9 @@ function isUsageReport(value: unknown, provider: UsageProviderKey): value is Usa
       value.windows.every(isNormalizedWindow)
     );
   }
+  if (provider === "openrouter" && value.source === "openrouter-api") {
+    return finiteNonNegative(value.totalCredits) && finiteNonNegative(value.totalUsage);
+  }
   if (provider === "claude" && value.source === "anthropic-oauth") {
     return (
       Array.isArray(value.windows) &&
@@ -229,7 +232,7 @@ function isSharedCacheEntry(value: unknown, provider: UsageProviderKey): value i
 
 function isProviderNumberMap(value: unknown): boolean {
   if (!isRecord(value)) return false;
-  return (["codex", "claude"] as const).every((provider) => {
+  return (["codex", "claude", "openrouter"] as const).every((provider) => {
     const item = value[provider];
     return item === undefined || (typeof item === "number" && Number.isFinite(item));
   });
@@ -237,7 +240,7 @@ function isProviderNumberMap(value: unknown): boolean {
 
 function isRefreshLeaseMap(value: unknown): boolean {
   if (!isRecord(value)) return false;
-  return (["codex", "claude"] as const).every((provider) => {
+  return (["codex", "claude", "openrouter"] as const).every((provider) => {
     const lease = value[provider];
     return (
       lease === undefined ||
@@ -249,7 +252,7 @@ function isRefreshLeaseMap(value: unknown): boolean {
   });
 }
 
-/** A disk cache entry key: the bare provider ("claude", "codex"), or
+/** A disk cache entry key: the bare provider ("claude", "codex", "openrouter"), or
  * "<provider>@<accountId>" for an external-adapter report measured against a
  * specific account. */
 export function cacheKeyFor(provider: UsageProviderKey, accountId: string | undefined): string {
@@ -259,7 +262,7 @@ export function cacheKeyFor(provider: UsageProviderKey, accountId: string | unde
 function parseCacheKey(key: string): { provider: UsageProviderKey; accountId?: string } | undefined {
   const at = key.indexOf("@");
   const providerPart = at === -1 ? key : key.slice(0, at);
-  if (providerPart !== "codex" && providerPart !== "claude") return undefined;
+  if (providerPart !== "codex" && providerPart !== "claude" && providerPart !== "openrouter") return undefined;
   if (at === -1) return { provider: providerPart };
   const accountId = key.slice(at + 1);
   if (accountId.trim().length === 0) return undefined;

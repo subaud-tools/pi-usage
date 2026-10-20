@@ -23,6 +23,7 @@
  *   codex-query.ts        queryViaPiAuth + queryCodexUsageWithFallback
  *   anthropic-auth.ts     resolve Pi Anthropic OAuth auth headers
  *   anthropic-query.ts    queryAnthropicUsage + fetchRawUsagePayloads (--raw)
+ *   openrouter-query.ts   OpenRouter key resolution + credit balance query
  *   query.ts              queryUsage, queryAllUsage, queryUsageWithRetries
  *   format.ts             usage report/statusline formatting and display notifications
  *   footer.ts             custom footer with right-aligned usage status

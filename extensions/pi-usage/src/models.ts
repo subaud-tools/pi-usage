@@ -1,6 +1,6 @@
 import { getUsageAdaptersV1 } from "./adapter-bus.js";
-import { ANTHROPIC_PROVIDER_ID, CODEX_PROVIDER_ID } from "./constants.js";
-import type { PiModel, UsageReport } from "./types.js";
+import { ANTHROPIC_PROVIDER_ID, CODEX_PROVIDER_ID, OPENROUTER_PROVIDER_ID } from "./constants.js";
+import type { PiModel, UsageProviderKey, UsageReport } from "./types.js";
 
 export function isOpenAICodexModel(model: Pick<PiModel, "provider"> | undefined): boolean {
   return model?.provider === CODEX_PROVIDER_ID;
@@ -10,9 +10,13 @@ export function isAnthropicModel(model: Pick<PiModel, "provider"> | undefined): 
   return model?.provider === ANTHROPIC_PROVIDER_ID;
 }
 
+export function isOpenRouterModel(model: Pick<PiModel, "provider"> | undefined): boolean {
+  return model?.provider === OPENROUTER_PROVIDER_ID;
+}
+
 export function isUsageSupportedModel(model: Pick<PiModel, "provider"> | undefined): boolean {
   if (!model) return false;
-  if (isOpenAICodexModel(model) || isAnthropicModel(model)) return true;
+  if (isOpenAICodexModel(model) || isAnthropicModel(model) || isOpenRouterModel(model)) return true;
   return getUsageAdaptersV1().some((adapter) => adapter.modelProviders.includes(model.provider));
 }
 
@@ -22,11 +26,13 @@ export function reportMatchesModel(report: UsageReport, model: Pick<PiModel, "pr
     return report.modelProviders.includes(model.provider);
   }
   if (report.provider === "codex") return isOpenAICodexModel(model);
+  if (report.provider === "openrouter") return isOpenRouterModel(model);
   return isAnthropicModel(model);
 }
 
-export function providerKeyForModel(model: Pick<PiModel, "provider"> | undefined): "codex" | "claude" {
+export function providerKeyForModel(model: Pick<PiModel, "provider"> | undefined): UsageProviderKey {
   if (isAnthropicModel(model)) return "claude";
+  if (isOpenRouterModel(model)) return "openrouter";
   return "codex";
 }
 
@@ -45,15 +51,24 @@ export function anthropicAuthCandidateModels(ctx: AuthCandidateContext): PiModel
   return providerAuthCandidateModels(ctx, ANTHROPIC_PROVIDER_ID);
 }
 
+export function openRouterAuthCandidateModels(ctx: AuthCandidateContext): PiModel[] {
+  return providerAuthCandidateModels(ctx, OPENROUTER_PROVIDER_ID);
+}
+
 export function filterReportsForConfiguredProviders(ctx: AuthCandidateContext, reports: UsageReport[]): UsageReport[] {
   const hasCodex = codexAuthCandidateModels(ctx).length > 0;
   const hasAnthropic = anthropicAuthCandidateModels(ctx).length > 0;
+  const hasOpenRouter = openRouterAuthCandidateModels(ctx).length > 0;
   const adapterProviders = new Set(getUsageAdaptersV1().flatMap((adapter) => adapter.modelProviders));
   return reports.filter((report) => {
     if (report.source === "external-adapter") {
       return report.modelProviders.some((provider) => adapterProviders.has(provider));
     }
-    return (report.provider === "codex" && hasCodex) || (report.provider === "claude" && hasAnthropic);
+    return (
+      (report.provider === "codex" && hasCodex) ||
+      (report.provider === "claude" && hasAnthropic) ||
+      (report.provider === "openrouter" && hasOpenRouter)
+    );
   });
 }
 
