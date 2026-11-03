@@ -5,7 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { getUsageBusV1 } from "../src/adapter-bus.js";
-import { CACHE_TTL_MS, REFRESH_LEASE_MS } from "../src/constants.js";
+import { CACHE_TTL_MS, REFRESH_LEASE_MS, STALE_LABEL_AFTER_MS } from "../src/constants.js";
 import {
   cacheKeyFor,
   configureSharedCacheForTests,
@@ -28,6 +28,7 @@ import type {
   ProviderUsageSnapshotV1,
   QueryUsageResult,
 } from "../src/types.js";
+import { formatNotUpdatingSince } from "../src/utils.js";
 import { startPausedCacheWriter, stopChild, waitForMutationPhase } from "./cache-process.js";
 
 const NOW = Date.parse("2026-09-12T13:00:00Z");
@@ -252,7 +253,7 @@ void test("malformed cached credits fail closed without crashing statusline rend
   });
 });
 
-void test("stale cache stays visible with an age marker while refresh is pending", async () => {
+void test("a routine refresh shows the expired cache without a label while it is pending", async () => {
   await withHarness(async ({ setQuery }) => {
     let resolveQuery!: (result: QueryUsageResult) => void;
     let queryCalls = 0;
@@ -271,7 +272,7 @@ void test("stale cache stays visible with an age marker while refresh is pending
     const refresh = refreshCurrentUsageStatusline(ctx, codexModel);
 
     assert.equal(queryCalls, 1);
-    assert.equal(statuses.at(-1), "Codex · 5h 23% (4m old)");
+    assert.equal(statuses.at(-1), "Codex · 5h 23%");
     assert.match(readSharedUsageCache()?.refreshLeases?.codex?.owner ?? "", /^\d+:[0-9a-f-]+$/i);
 
     resolveQuery({ ok: true, report: codexReport(NOW, 31) });
@@ -279,6 +280,34 @@ void test("stale cache stays visible with an age marker while refresh is pending
     assert.equal(statuses.at(-1), "Codex · 5h 31%");
     assert.equal(readSharedUsageCache()?.refreshLeases?.codex, undefined);
   });
+});
+
+void test("usage older than the label threshold says when it stopped updating", async () => {
+  await withHarness(async ({ setQuery }) => {
+    let resolveQuery!: (result: QueryUsageResult) => void;
+    setQuery(
+      () =>
+        new Promise((resolve) => {
+          resolveQuery = resolve;
+        }),
+    );
+    const staleAt = NOW - STALE_LABEL_AFTER_MS - 60_000;
+    saveSharedUsageReport(codexReport(staleAt), staleAt);
+    const statuses: Array<string | undefined> = [];
+
+    const refresh = refreshCurrentUsageStatusline(context(codexModel, statuses), codexModel);
+
+    assert.equal(statuses.at(-1), `Codex · 5h 23% (${formatNotUpdatingSince(staleAt, NOW)})`);
+    resolveQuery({ ok: true, report: codexReport(NOW, 31) });
+    await refresh;
+    assert.equal(statuses.at(-1), "Codex · 5h 31%");
+  });
+});
+
+void test("the not-updating label gives the time, and the date once it is from an earlier day", () => {
+  const since = new Date(2026, 9, 21, 9, 5).getTime();
+  assert.equal(formatNotUpdatingSince(since, new Date(2026, 9, 21, 9, 20).getTime()), "not updating since 9:05");
+  assert.equal(formatNotUpdatingSince(since, new Date(2026, 9, 22, 0, 1).getTime()), "not updating since Oct 21 9:05");
 });
 
 void test("the minute timer rerenders countdowns without querying", async () => {
@@ -354,7 +383,7 @@ void test("a foreign lease suppresses duplicate refresh and retries at lease exp
     await refreshCurrentUsageStatusline(context(codexModel, statuses), codexModel);
 
     assert.equal(queryCalls, 0);
-    assert.equal(statuses.at(-1), "Codex · 5h 23% (4m old)");
+    assert.equal(statuses.at(-1), "Codex · 5h 23%");
     assert.equal(timers.at(-1)?.delayMs, REFRESH_LEASE_MS - 5_000);
   });
 });
@@ -560,7 +589,10 @@ void test("changing providers cancels the prior timer and clears selected-provid
     assert.equal(codexTimer.cleared, true);
     assert.equal(codexCountdownTimer.cleared, true);
     assert.deepEqual(statuses.slice(-3), [undefined, "checking", "usage error"]);
-    assert.equal(statuses.includes("Codex · 5h 23% (4m old)"), false);
+    assert.equal(
+      statuses.some((status) => status?.includes("not updating")),
+      false,
+    );
   });
 });
 
