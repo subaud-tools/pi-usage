@@ -109,7 +109,7 @@ export function renderUsageFooter(
 }
 
 /** Usage leads the line, left-aligned: its text changes length as it refreshes
- * ("checking", "(5m old)", countdowns), and a fixed start keeps it from
+ * ("checking", "(not updating since 9:05)", countdowns), and a fixed start keeps it from
  * jumping. A narrow terminal cuts the other statuses first. */
 export function renderUsageStatusLine(
   theme: FooterTheme,
