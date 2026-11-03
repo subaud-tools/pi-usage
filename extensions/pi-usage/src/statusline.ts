@@ -7,6 +7,7 @@ import {
   CODEX_PROVIDER_ID,
   DEFAULT_TIMEOUT_MS,
   REFRESH_LEASE_MS,
+  STALE_LABEL_AFTER_MS,
   STATUS_KEY,
 } from "./constants.js";
 import { isRateLimitErrorMessage, isStaleExtensionContextError, rateLimitBackoffMs } from "./errors.js";
@@ -43,7 +44,7 @@ import type {
   UsageProviderKey,
   UsageReport,
 } from "./types.js";
-import { formatAgeShort } from "./utils.js";
+import { formatAgeShort, formatNotUpdatingSince } from "./utils.js";
 
 type StatuslineTimer = ReturnType<typeof setTimeout>;
 type StatuslineRuntime = {
@@ -181,7 +182,7 @@ const scheduleCountdownRerender = (
   ctx: ExtensionContext,
   report: UsageReport,
   model: ProviderUsageModel | undefined,
-  stale: boolean,
+  staleSince: number | undefined,
 ) => {
   if (statuslineCountdownTimer) runtime.clearTimeout(statuslineCountdownTimer);
   const requestId = statuslineRequestId;
@@ -196,7 +197,7 @@ const scheduleCountdownRerender = (
     }
     let text = formatUsageStatusline(report, model);
     if (text === undefined) return;
-    if (stale) text = `${text} (${formatAgeShort(Math.max(0, runtime.now() - report.capturedAt))} old)`;
+    if (staleSince !== undefined) text = `${text} (${formatNotUpdatingSince(staleSince, runtime.now())})`;
     if (!setStatuslineValue(ctx, text)) return;
     statuslineCountdownTimer = runtime.setTimeout(rerender, 60_000);
     statuslineCountdownTimer.unref?.();
@@ -222,13 +223,15 @@ const setUsageStatusline = (
     setStatuslineValue(ctx, undefined);
     return false;
   }
-  const stale = options.forceStale === true || (options.staleAgeMs !== undefined && options.staleAgeMs >= CACHE_TTL_MS);
-  if (stale) text = `${text} (${formatAgeShort(options.staleAgeMs as number)} old)`;
+  const stale =
+    options.forceStale === true || (options.staleAgeMs !== undefined && options.staleAgeMs >= STALE_LABEL_AFTER_MS);
+  const staleSince = stale ? runtime.now() - (options.staleAgeMs ?? 0) : undefined;
+  if (staleSince !== undefined) text = `${text} (${formatNotUpdatingSince(staleSince, runtime.now())})`;
   if (!setStatuslineValue(ctx, text)) return false;
   activeStatuslineContext = ctx;
   if (statuslineClearTimer) runtime.clearTimeout(statuslineClearTimer);
   statuslineClearTimer = undefined;
-  scheduleCountdownRerender(ctx, report, options.model, stale);
+  scheduleCountdownRerender(ctx, report, options.model, staleSince);
   if (options.schedule === false) return true;
   if (options.autoRefresh) scheduleStatuslineRefresh(ctx, options.model, options.refreshDelayMs);
   else scheduleTemporaryStatuslineClear(ctx);
