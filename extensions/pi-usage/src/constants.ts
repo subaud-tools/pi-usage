@@ -17,6 +17,9 @@ export const ANTHROPIC_OAUTH_USAGE_URL = "https://api.anthropic.com/api/oauth/us
 export const OPENROUTER_CREDITS_URL = "https://openrouter.ai/api/v1/credits";
 export const DEFAULT_TIMEOUT_MS = 15_000;
 export const CACHE_TTL_MS = 3 * 60 * 1000;
+/** Age at which the footer says the shown usage is not updating. Past one
+ * failed refresh and its retry a TTL later, so a routine refresh never shows it. */
+export const STALE_LABEL_AFTER_MS = 10 * 60 * 1000;
 export const REFRESH_LEASE_MS = 30_000;
 export const STATUSLINE_RETRY_ATTEMPTS = 3;
 export const STATUSLINE_RETRY_DELAY_MS = 1_000;
