@@ -25,13 +25,13 @@ void test("usage leads the status line, so its start never moves as its text cha
   );
   const stale = renderUsageStatusLine(
     theme,
-    footerWith({ ...others, [STATUS_KEY]: "Claude · 5h 5% ↻2h · 7d 50% ↻1d (5m old)" }),
+    footerWith({ ...others, [STATUS_KEY]: "Claude · 5h 5% ↻2h · 7d 50% ↻1d (not updating since 9:05)" }),
     120,
   );
   const checking = renderUsageStatusLine(theme, footerWith({ ...others, [STATUS_KEY]: "checking" }), 120);
 
   assert.equal(full, "Claude · 5h 5% ↻2h · 7d 50% ↻1d  yolo channels 6/6");
-  assert.equal(stale, "Claude · 5h 5% ↻2h · 7d 50% ↻1d (5m old)  yolo channels 6/6");
+  assert.equal(stale, "Claude · 5h 5% ↻2h · 7d 50% ↻1d (not updating since 9:05)  yolo channels 6/6");
   assert.equal(checking, "checking  yolo channels 6/6");
 });
 

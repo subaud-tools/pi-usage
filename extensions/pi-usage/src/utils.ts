@@ -100,6 +100,16 @@ export function formatAgeShort(ms: number): string {
   return `${Math.floor(hours / 24)}d`;
 }
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** "not updating since 10:19", with the date when the usage is from an earlier day. */
+export function formatNotUpdatingSince(since: number, now: number): string {
+  const at = new Date(since);
+  const time = `${at.getHours()}:${String(at.getMinutes()).padStart(2, "0")}`;
+  const sameDay = at.toDateString() === new Date(now).toDateString();
+  return `not updating since ${sameDay ? time : `${MONTHS[at.getMonth()]} ${at.getDate()} ${time}`}`;
+}
+
 export function clampPercent(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.min(100, Math.max(0, value));
